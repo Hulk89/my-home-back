@@ -1,0 +1,8 @@
+{
+    "host": "host.aaa.bbb",
+    "port": 10020,
+    "user": "user",
+    "password": "password",
+    "db": "db_name",
+    "secret_key": "my_secret_code"
+}

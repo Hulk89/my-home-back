@@ -5,6 +5,8 @@ import json
 import sys
 from datetime import datetime, timedelta
 from config import Config
+from models import database as db
+from models import models
 
 from login import Login
 
@@ -17,6 +19,9 @@ with open(sys.argv[1]) as f:
     db_config = json.loads(f.read())
 
 login_db = Login(**db_config)
+
+# sqlalchemy 세팅
+database.initialize(**db_config)
 
 
 @app.route("/")
@@ -55,7 +60,7 @@ def token_required(f):
         try:
             token = auth_headers[1]
             data = jwt.decode(token, app.config["SECRET_KEY"])
-            return f(data['sub'], *args, **kwargs)
+            return f(*args, **kwargs)
         except jwt.ExpiredSignatureError:
             return jsonify(expired_msg), 401 # 401 is Unauthorized HTTP status code
         except (jwt.InvalidTokenError, Exception) as e:
@@ -64,12 +69,22 @@ def token_required(f):
 
     return _verify
 
-@token_required
-@app.route("/download", methods=('POST', ))
-def download(name):
+#@token_required
+@app.route("/select", methods=('GET', ))
+def select():
+    print(database.SESSION.query(models.Todo).first())
+    return str(database.SESSION.query(models.Todo).first())
+
+@app.route("/put", methods=('POST', ))
+def put():
     data = request.get_json()
-    print(data)
+    database.SESSION.add(models.Todo(data["title"],
+                                     data["description"],
+                                     models.TodoState.todo))
+    database.SESSION.commit()
+    return "Good"
 
 
 if __name__ == "__main__":
     app.run()
+

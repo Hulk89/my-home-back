@@ -3,18 +3,21 @@ from flask_cors import CORS
 import jwt
 import json
 import sys
-from login import Login
 from datetime import datetime, timedelta
+from config import Config
+
+from login import Login
 
 app = Flask(__name__)
+app.config.from_object(Config)
+
 CORS(app)
 
 with open(sys.argv[1]) as f:
-    config = json.loads(f.read())
+    db_config = json.loads(f.read())
 
-login_db = Login(**config)
+login_db = Login(**db_config)
 
-SECRET_KEY = config['secret_key']
 
 @app.route("/")
 def hello():
@@ -30,7 +33,7 @@ def login():
             'sub': data['user'],
             'iat': datetime.utcnow(),
             'exp': datetime.utcnow() + timedelta(minutes=30)},
-          SECRET_KEY)
+          app.config["SECRET_KEY"])
         return jsonify({'token': token.decode('UTF-8')})
     else:
         return jsonify({'message': 'Invalid credentials',
@@ -51,7 +54,7 @@ def token_required(f):
             return jsonify(invalid_msg), 401
         try:
             token = auth_headers[1]
-            data = jwt.decode(token, SECRET_KEY)
+            data = jwt.decode(token, app.config["SECRET_KEY"])
             return f(data['sub'], *args, **kwargs)
         except jwt.ExpiredSignatureError:
             return jsonify(expired_msg), 401 # 401 is Unauthorized HTTP status code

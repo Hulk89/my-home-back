@@ -4,6 +4,9 @@ from sqlalchemy.ext.declarative import declarative_base
 
 Base = declarative_base()
 
+SESSION = None
+ENGINE = None
+
 def getEngine(**kwargs):
     engine_str = 'mysql+mysqldb://{user}:{password}@{host}:{port}/{db}'
     engine = create_engine(engine_str.format(**kwargs))
@@ -11,8 +14,8 @@ def getEngine(**kwargs):
 
 
 def initialize(**config):
-    import models
     global ENGINE, SESSION
+    from models import models  # package.module
     engine = getEngine(**config)
     Base.metadata.create_all(engine)
     Session = sessionmaker(bind=engine)
@@ -20,6 +23,8 @@ def initialize(**config):
     ENGINE = engine
     SESSION = Session()
 
+    models.User.make_onlyone_user(SESSION,
+                                  config["root_name"],
+                                  config["root_password"])
 
-SESSION = None
-ENGINE = None
+

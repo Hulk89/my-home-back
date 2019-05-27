@@ -3,5 +3,7 @@
     "port": 10020,
     "user": "user",
     "password": "password",
-    "db": "db_name"
+    "db": "db_name",
+    "root_name": "root_names",
+    "root_password": "root_password"
 }

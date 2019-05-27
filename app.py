@@ -4,11 +4,10 @@ import jwt
 import json
 import sys
 from datetime import datetime, timedelta
+from functools import wraps
 from config import Config
 from models import database as db
 from models import models
-
-from login import Login
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -18,10 +17,9 @@ CORS(app)
 with open(sys.argv[1]) as f:
     db_config = json.loads(f.read())
 
-login_db = Login(**db_config)
 
 # sqlalchemy 세팅
-database.initialize(**db_config)
+db.initialize(**db_config)
 
 
 @app.route("/")
@@ -31,8 +29,9 @@ def hello():
 @app.route('/login', methods=('POST',))
 def login():
     data = request.get_json()
-    if login_db.login(data['user'],
-                      data['password']):
+    if models.User.check_password(db.SESSION,
+                                  data['user'],
+                                  data['password']):
         print("login success")
         token = jwt.encode({
             'sub': data['user'],
@@ -45,6 +44,7 @@ def login():
                         'authenticated': False}), 401
 
 def token_required(f):
+    @wraps(f)
     def _verify(*args, **kwargs):
         auth_headers = request.headers.get('Authorization', '').split()
         invalid_msg = {
@@ -60,28 +60,31 @@ def token_required(f):
         try:
             token = auth_headers[1]
             data = jwt.decode(token, app.config["SECRET_KEY"])
+            user = db.SESSION.query(models.User).filter_by(name=data['sub']).first()
+            if not user:
+                raise RuntimeError("User not found")
             return f(*args, **kwargs)
         except jwt.ExpiredSignatureError:
             return jsonify(expired_msg), 401 # 401 is Unauthorized HTTP status code
         except (jwt.InvalidTokenError, Exception) as e:
             print(e)
             return jsonify(invalid_msg), 401
-
     return _verify
 
-#@token_required
 @app.route("/select", methods=('GET', ))
+@token_required
 def select():
-    print(database.SESSION.query(models.Todo).first())
-    return str(database.SESSION.query(models.Todo).first())
+    print(db.SESSION.query(models.Todo).all())
+    return str(db.SESSION.query(models.Todo).all())
 
 @app.route("/put", methods=('POST', ))
+@token_required
 def put():
     data = request.get_json()
-    database.SESSION.add(models.Todo(data["title"],
-                                     data["description"],
-                                     models.TodoState.todo))
-    database.SESSION.commit()
+    db.SESSION.add(models.Todo(data["title"],
+                               data["description"],
+                               models.TodoState.todo))
+    db.SESSION.commit()
     return "Good"
 
 

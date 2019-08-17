@@ -1,26 +1,18 @@
-from flask import Flask, jsonify, request
+# -- coding: utf-8 --
+from flask import Flask, jsonify, request, escape
 from flask_cors import CORS
 import jwt
 import json
-import sys
 from datetime import datetime, timedelta
 from functools import wraps
+import argparse
+import os
+
 from config import Config
 from models import database as db
 from models import models
 
 app = Flask(__name__)
-app.config.from_object(Config)
-
-CORS(app)
-
-with open(sys.argv[1]) as f:
-    db_config = json.loads(f.read())
-
-
-# sqlalchemy 세팅
-db.initialize(**db_config)
-
 
 @app.route("/")
 def hello():
@@ -87,7 +79,52 @@ def put():
     db.SESSION.commit()
     return "Good"
 
+# Comics 관련
+@app.route("/comics_list", methods=('GET', ))
+@token_required
+def get_comics_list():
+    return jsonify(os.listdir(app.config["data_folder_path"]))
+
+@app.route("/comic_list/<comic_title>", methods=('GET', ))
+@token_required
+def get_comic_list(comic_title):
+    data_path = app.config["data_folder_path"]
+    comic_folder = os.path.join(data_path, escape(comic_title))
+    comic_list = os.listdir(comic_folder)
+    comic_list.sort()
+    return jsonify(comic_list)
+
+
+@app.route("/comic/image_list", methods=('POST', ))
+@token_required
+def get_image_list():
+    def get_int_value(image_filename):
+        s = ''.join(x for x in image_filename if x.isdigit())
+        return int(s)
+    data_path = app.config["data_folder_path"]
+    data = request.get_json()
+    comic_title, idx = data["title"], data["index"]
+    print(data)
+    comic_folder = os.path.join(data_path, escape(comic_title))
+    image_list = os.listdir(os.path.join(comic_folder, idx))
+    image_list.sort(key=lambda x: get_int_value(x))
+    return jsonify(image_list)
+
+
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="my-home-backend")
+    parser.add_argument("--config", required=True)
+    parser.add_argument("--folder_path", required=True)
+    args = parser.parse_args()
+
+    app.config.from_object(Config)
+    app.config["data_folder_path"] = args.folder_path
+    CORS(app)
+    with open(args.config) as f:
+        db_config = json.loads(f.read())
+    # sqlalchemy 세팅
+    db.initialize(**db_config)
+
     app.run()
 

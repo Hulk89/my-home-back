@@ -1,5 +1,5 @@
 # -- coding: utf-8 --
-from flask import Flask, jsonify, request, escape
+from flask import Flask, jsonify, request, escape, send_file
 from flask_cors import CORS
 import jwt
 import json
@@ -94,7 +94,6 @@ def get_comic_list(comic_title):
     comic_list.sort()
     return jsonify(comic_list)
 
-
 @app.route("/comic/image_list", methods=('POST', ))
 @token_required
 def get_image_list():
@@ -103,12 +102,26 @@ def get_image_list():
         return int(s)
     data_path = app.config["data_folder_path"]
     data = request.get_json()
-    comic_title, idx = data["title"], data["index"]
-    print(data)
+    comic_title, episode_id = data["title"], data["ep_id"]
+
     comic_folder = os.path.join(data_path, escape(comic_title))
-    image_list = os.listdir(os.path.join(comic_folder, idx))
+    image_list = os.listdir(os.path.join(comic_folder, episode_id))
     image_list.sort(key=lambda x: get_int_value(x))
+    
     return jsonify(image_list)
+
+@app.route("/comic/image", methods=('POST', ))
+@token_required
+def get_image():
+    data_path = app.config["data_folder_path"]
+    data = request.get_json()
+    comic_title, episode_id, filename = data["title"], data["ep_id"], data["img_filename"]
+
+    comic_folder = os.path.join(data_path, escape(comic_title))
+    episode_folder = os.path.join(comic_folder, episode_id)
+    image_file = os.path.join(episode_folder, filename)
+
+    return send_file(image_file)
 
 
 

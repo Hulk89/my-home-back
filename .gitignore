@@ -1,2 +1,4 @@
 DO_NOT_UPLOAD
 real_config.json
+*__pycache__
+*.DS_Store

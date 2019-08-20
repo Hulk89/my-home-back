@@ -8,14 +8,14 @@ import os
 from config import Config
 from models import database as db
 from models import models
-from routes.verify import token_required, encode_jwt
-from routes.comics import comics
+from routes.verify import encode_jwt
+from routes.comics import make_comics_blueprint
+from routes.todo import make_todo_blueprint
 
 def make_routes(data_path, config):
     app = Flask(__name__)
 
     app.config.from_object(Config)
-    app.config["data_folder_path"] = data_path
     CORS(app)
     with open(config) as f:
         db_config = json.loads(f.read())
@@ -26,6 +26,7 @@ def make_routes(data_path, config):
     def hello():
         return "Hello World!"
 
+    # TODO: login도 blueprint로 빼자
     @app.route('/login', methods=('POST',))
     def login():
         data = request.get_json()
@@ -33,28 +34,18 @@ def make_routes(data_path, config):
                                     data['user'],
                                     data['password']):
             print("login success")
-            token = encode_jwt(data['user'])
+            token = encode_jwt(data['user'],
+                               app.config["SECRET_KEY"])
             return jsonify({'token': token.decode('UTF-8')})
         else:
             return jsonify({'message': 'Invalid credentials',
                             'authenticated': False}), 401
-    @app.route("/select", methods=('GET', ))
-    @token_required
-    def select():
-        print(db.SESSION.query(models.Todo).all())
-        return str(db.SESSION.query(models.Todo).all())
 
-    @app.route("/put", methods=('POST', ))
-    @token_required
-    def put():
-        data = request.get_json()
-        db.SESSION.add(models.Todo(data["title"],
-                                data["description"],
-                                models.TodoState.todo))
-        db.SESSION.commit()
-        return "Good"
+    comics_blueprint = make_comics_blueprint(data_path, app.config["SECRET_KEY"])
+    todo_blueprint = make_todo_blueprint(app.config["SECRET_KEY"])
 
-    app.register_blueprint(comics, url_prefix='/comics')
+    app.register_blueprint(comics_blueprint, url_prefix='/comics')
+    app.register_blueprint(todo_blueprint, url_prefix='/todo')
 
     return app
 

@@ -7,7 +7,7 @@ from flask import current_app as app  # TODO: SECRET_KEY 밖에서 가져오도�
 from models import database as db
 from models import models
 
-def token_required(f):
+def token_required(f, secret_key):
     @wraps(f)
     def _verify(*args, **kwargs):
         auth_headers = request.headers.get('Authorization', '').split()
@@ -23,7 +23,7 @@ def token_required(f):
             return jsonify(invalid_msg), 401
         try:
             token = auth_headers[1]
-            data = jwt.decode(token, app.config["SECRET_KEY"])
+            data = jwt.decode(token, secret_key)
             user = db.SESSION.query(models.User).filter_by(name=data['sub']).first()
             if not user:
                 raise RuntimeError("User not found")
@@ -36,11 +36,11 @@ def token_required(f):
     return _verify
 
 
-def encode_jwt(user):
+def encode_jwt(user, secret_key):
     token = jwt.encode({
                     'sub': user,
                     'iat': datetime.utcnow(),
                     'exp': datetime.utcnow() + timedelta(minutes=30)},
-                app.config["SECRET_KEY"])
+                secret_key)
     return token
 

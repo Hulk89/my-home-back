@@ -3,7 +3,6 @@ from functools import wraps
 import jwt
 from datetime import datetime, timedelta
 
-from flask import current_app as app  # TODO: SECRET_KEY 밖에서 가져오도록..
 from models import database as db
 from models import models
 

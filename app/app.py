@@ -54,8 +54,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="my-home-backend")
     parser.add_argument("--config", required=True)
     parser.add_argument("--folder_path", required=True)
+    parser.add_argument("--ip", default=None)
+    parser.add_argument("--port", default=5000)
     args = parser.parse_args()
 
     app = make_routes(args.folder_path, args.config)
-    app.run()
+    app.run(host=args.ip, port=args.port)
 

@@ -29,17 +29,21 @@ def make_routes(data_path, config):
     # TODO: login도 blueprint로 빼자
     @app.route('/login', methods=('POST',))
     def login():
+        session = db.SESSION()
         data = request.get_json()
-        if models.User.check_password(db.SESSION,
-                                    data['user'],
-                                    data['password']):
+        if models.User.check_password(session,
+                                      data['user'],
+                                      data['password']):
             print("login success")
             token = encode_jwt(data['user'],
                                app.config["SECRET_KEY"])
-            return jsonify({'token': token.decode('UTF-8')})
+            result = jsonify({'token': token.decode('UTF-8')})
         else:
-            return jsonify({'message': 'Invalid credentials',
-                            'authenticated': False}), 401
+            result = jsonify({'message': 'Invalid credentials',
+                              'authenticated': False}), 401
+        session.close()
+        return result
+
 
     comics_blueprint = make_comics_blueprint(data_path, app.config["SECRET_KEY"])
     todo_blueprint = make_todo_blueprint(app.config["SECRET_KEY"])

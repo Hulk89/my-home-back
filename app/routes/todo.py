@@ -14,17 +14,22 @@ def make_todo_blueprint(secret_key):
     @todo.route("/select", methods=('GET', ))
     @token_required_w_secret_key
     def select():
-        return str(db.SESSION.query(models.Todo).all())
+        session = db.SESSION()
+        result = str(session.query(models.Todo).all())
+        session.close()
+        return result
 
 
     @todo.route("/put", methods=('POST', ))
     @token_required_w_secret_key
     def put():
         data = request.get_json()
-        db.SESSION.add(models.Todo(data["title"],
-                                   data["description"],
-                                   models.TodoState.todo))
-        db.SESSION.commit()
+        session = db.SESSION()
+        session.add(models.Todo(data["title"],
+                                data["description"],
+                                models.TodoState.todo))
+        session.commit()
+        session.close()
         return "Good"
 
     return todo

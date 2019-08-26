@@ -21,13 +21,14 @@ def initialize(**config):
     from models import models  # package.module
     engine = getEngine(**config)
     Base.metadata.create_all(engine)
-    Session = scoped_session(sessionmaker(bind=engine))
+    SESSION = scoped_session(sessionmaker(bind=engine))
 
     ENGINE = engine
-    SESSION = Session()
+    session = SESSION()
 
-    models.User.make_onlyone_user(SESSION,
+    models.User.make_onlyone_user(session,
                                   config["root_name"],
                                   config["root_password"])
 
+    session.close()
 

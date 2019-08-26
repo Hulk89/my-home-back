@@ -23,7 +23,9 @@ def token_required(f, secret_key):
         try:
             token = auth_headers[1]
             data = jwt.decode(token, secret_key)
-            user = db.SESSION.query(models.User).filter_by(name=data['sub']).first()
+            session = db.SESSION()  # TODO...
+            user = session.query(models.User).filter_by(name=data['sub']).first()
+            session.close()
             if not user:
                 raise RuntimeError("User not found")
             return f(*args, **kwargs)

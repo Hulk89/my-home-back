@@ -5,5 +5,5 @@ Flask-SQLAlchemy==2.4.0
 SQLAlchemy==1.3.3
 PyMySQL==0.9.3
 pymysql-pooling==1.0.1
-PyJWT==1.7.1
+PyJWT==2.4.0
 mysqlclient==1.4.2.post1
